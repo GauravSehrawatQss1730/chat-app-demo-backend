@@ -29,20 +29,30 @@ app.get('/', (req, res) => {
 // Socket.IO for real-time messaging
 io.on('connection', (socket) => {
   console.log('A user connected');
-  
-  // Listen for incoming messages
-  socket.on('sendMessage', (message) => {
-    console.log('Message received:', message);
-    messages.push(message);
-    // Emit to all clients (broadcast)
-    io.emit('receiveMessage', message);
+
+  // Join room
+  socket.on('joinRoom', ({ roomId }) => {
+    socket.join(roomId);
+    console.log(`User joined room: ${roomId}`);
   });
 
-  // Handle user disconnection
+  // Leave room
+  socket.on('leaveRoom', ({ roomId }) => {
+    socket.leave(roomId);
+    console.log(`User left room: ${roomId}`);
+  });
+
+  // Broadcast messages within a room
+  socket.on('sendMessage', (message) => {
+    console.log('Message received:', message);
+    io.to(message.roomId).emit('receiveMessage', message);
+  });
+
   socket.on('disconnect', () => {
     console.log('User disconnected');
   });
 });
+
 
 // Set up the server to listen on a port
 const PORT = process.env.PORT || 5000;
