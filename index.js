@@ -9,7 +9,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
-
+require('dotenv').config()
 app.use(express.json());
 app.use(cors())
 
