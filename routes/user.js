@@ -101,40 +101,5 @@ router.put('/profile', authMiddleware, async (req, res) => {
   }
 });
 
-router.get('/getAllChats', authMiddleware, async (req, res) => {
-  try {
-    const userId = req.user.id; // Assuming `authMiddleware` sets `req.user`
-
-    // Fetch all direct chats involving the user
-    const directChats = await DirectChat.find({
-      $or: [{ user1: userId }, { user2: userId }],
-    })
-      .populate('user1', 'name email')
-      .populate('user2', 'name email');
-
-    // Extract the users from the direct chats
-    const directChatUsers = directChats.map((chat) => {
-      return chat.user1._id.toString() === userId
-        ? chat.user2
-        : chat.user1;
-    });
-
-    // Fetch all group chats involving the user
-    const groupChats = await GroupChat.find({ members: userId }).populate(
-      'members',
-      'name email'
-    );
-
-    // Return the results
-    return res.status(200).json({
-      directChatUsers: Array.from(new Set(directChatUsers.map((user) => user._id))),
-      groupChats,
-    });
-  } catch (error) {
-    console.error('Error getting all chats:', error);
-    return res.status(500).json({ message: 'Error getting all chats' });
-  }
-});
-
 
 module.exports = router;
