@@ -10,11 +10,11 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
-require('dotenv').config()
+require('dotenv').config();
 app.use(express.json());
-app.use(cors())
+app.use(cors());
 
-connectDB()
+connectDB();
 
 // Sample in-memory chat data
 let messages = [];
@@ -26,7 +26,6 @@ app.get('/', (req, res) => {
   res.send('Chat App Backend');
 });
 
-
 // Socket.IO for real-time messaging
 io.on('connection', (socket) => {
   console.log('A user connected');
@@ -37,22 +36,31 @@ io.on('connection', (socket) => {
   });
 
   socket.on('sendMessage', async (message) => {
-    console.log("Got a new message")
+    console.log('Got a new message');
     const { chat, sender, text } = message;
 
     // Save the message to the database
     const newMessage = await Message.create({ chat, sender, text });
 
+    const data = await Message.findById(newMessage._id).populate(
+      'sender',
+      'username email'
+    );
+
+    let error = null;
+
+    if (!data) {
+      error = 'Something went wrong.';
+    }
+
     // Emit the message to all clients in the room
-    io.to(chat).emit('receiveMessage', newMessage);
+    io.to(chat).emit('receiveMessage', { data, error });
   });
 
   socket.on('disconnect', () => {
     console.log('A user disconnected');
   });
 });
-
-
 
 // Set up the server to listen on a port
 const PORT = process.env.PORT || 5000;
