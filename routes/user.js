@@ -3,7 +3,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const authMiddleware = require('../middleware');  // Import the auth middleware
+const authMiddleware = require('../middleware'); // Import the auth middleware
 const DirectChat = require('../models/DirectChat');
 const GroupChat = require('../models/GroupChat');
 const router = express.Router();
@@ -12,8 +12,8 @@ const router = express.Router();
 const generateToken = (user) => {
   return jwt.sign(
     { id: user._id, username: user.username, email: user.email },
-    'your_secret_key',  // Replace with a secure secret key
-    { expiresIn: '1h' }  // Token expires in 1 hour
+    'your_secret_key', // Replace with a secure secret key
+    { expiresIn: '1h' } // Token expires in 1 hour
   );
 };
 
@@ -35,9 +35,14 @@ router.post('/register', async (req, res) => {
     // Generate JWT token
     const token = generateToken(newUser);
 
-    return res.status(201).json({ message: 'User created successfully', token ,user :{
-        name : newUser.username, email : newUser.email,
-    } });
+    return res.status(201).json({
+      message: 'User created successfully',
+      token,
+      user: {
+        name: newUser.username,
+        email: newUser.email,
+      },
+    });
   } catch (error) {
     console.error('Error registering user:', error);
     return res.status(500).json({ message: 'Error registering user' });
@@ -64,9 +69,14 @@ router.post('/login', async (req, res) => {
     // Generate JWT token
     const token = generateToken(user);
 
-    return res.status(200).json({ message: 'Login successful', token,user :{
-        name : user.username, email : user.email, 
-    } });
+    return res.status(200).json({
+      message: 'Login successful',
+      token,
+      user: {
+        name: user.username,
+        email: user.email,
+      },
+    });
   } catch (error) {
     console.error('Error logging in user:', error);
     return res.status(500).json({ message: 'Error logging in user' });
@@ -77,7 +87,7 @@ router.post('/login', async (req, res) => {
 router.get('/profile', authMiddleware, async (req, res) => {
   try {
     // Access user information from req.user (set by authMiddleware)
-    const user = await User.findById(req.user.id).select('-password');  // Don't return password in the response
+    const user = await User.findById(req.user.id).select('-password'); // Don't return password in the response
 
     return res.status(200).json(user);
   } catch (error) {
@@ -92,7 +102,11 @@ router.put('/profile', authMiddleware, async (req, res) => {
 
   try {
     // Update user profile based on req.user.id (set by authMiddleware)
-    const user = await User.findByIdAndUpdate(req.user.id, { username, email }, { new: true });
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { username, email },
+      { new: true }
+    );
 
     return res.status(200).json(user);
   } catch (error) {
@@ -104,7 +118,7 @@ router.put('/profile', authMiddleware, async (req, res) => {
 router.get('/all', authMiddleware, async (req, res) => {
   try {
     // Fetch all users
-    const users = await User.find();
+    const users = await User.find().select('-password');
 
     // Respond with the list of users
     return res.status(200).json(users);
@@ -113,6 +127,5 @@ router.get('/all', authMiddleware, async (req, res) => {
     return res.status(500).json({ message: 'Error fetching users' });
   }
 });
-
 
 module.exports = router;
