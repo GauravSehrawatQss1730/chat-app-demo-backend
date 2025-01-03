@@ -31,6 +31,11 @@ app.get('/', (req, res) => {
 io.on('connection', (socket) => {
   console.log('A user connected');
 
+  socket.on('joinRoom', ({ roomId }) => {
+    socket.join(roomId);
+    console.log(`User joined room: ${roomId}`);
+  });
+
   socket.on('sendMessage', async (message) => {
     console.log("Got a new message")
     const { chat, sender, text } = message;
