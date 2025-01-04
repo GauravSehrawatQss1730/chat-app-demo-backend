@@ -65,6 +65,36 @@ router.post('/create', authMiddleware, async (req, res) => {
   }
 });
 
+router.get('/:id', authMiddleware, async (req, res) => {
+  try {
+    const chatId = req.params.id;
+    const chatType = req.query?.type;
+
+    if (chatType === 'direct') {
+      const directChat = await DirectChat.findById(chatId).populate([
+        { path: 'user1', select: '-password' },
+        { path: 'user2', select: '-password' },
+      ]);
+
+      return res.status(200).json(directChat);
+    }
+
+    if (chatType === 'group') {
+      const groupChat = await GroupChat.findById(chatId).populate({
+        path: 'members.user',
+        select: 'username email _id',
+      });
+
+      return res.status(200).json(groupChat);
+    }
+
+    return res.status(404).json({ message: 'Chat not found' });
+  } catch (error) {
+    console.error('Error fetching chat:', error);
+    return res.status(500).json({ message: 'Error fetching chat' });
+  }
+});
+
 router.get('/allChat', authMiddleware, async (req, res) => {
   try {
     // Extract the user ID from the token (assuming `req.user.id` contains the user ID after passing authMiddleware)
