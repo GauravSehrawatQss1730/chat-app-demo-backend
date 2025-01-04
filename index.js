@@ -27,12 +27,17 @@ app.get('/', (req, res) => {
 });
 
 // Socket.IO for real-time messaging
+let onlineUsers = new Set();
 io.on('connection', (socket) => {
   console.log('A user connected');
 
   socket.on('joinRoom', ({ roomId }) => {
     socket.join(roomId);
     console.log(`User joined room: ${roomId}`);
+  });
+  socket.on('userOnline', (userId) => {
+    onlineUsers.add(userId);
+    io.emit('onlineUsers', Array.from(onlineUsers)); // Send the list of online users to all clients
   });
 
   socket.on('sendMessage', async (message) => {
@@ -58,6 +63,8 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
+    onlineUsers.delete(socket.userId);  // Remove user by socket.userId (store it when they connect)
+    io.emit('onlineUsers', Array.from(onlineUsers));
     console.log('A user disconnected');
   });
 });
