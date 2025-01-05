@@ -1,14 +1,16 @@
 const express = require('express');
 const DirectChat = require('../models/DirectChat'); // Import DirectChat and GroupChat discriminators
-const {GroupChat } = require('../models/GroupChat'); 
+const GroupChat = require('../models/GroupChat');
 const User = require('../models/User');
 const authMiddleware = require('../middleware');
+const mongoose = require('mongoose');
+const GroupAccess = require('../group-access');
 const router = express.Router();
 
 // Create a new chat (direct or group)
 router.post('/create', authMiddleware, async (req, res) => {
   const user1 = req.user.id;
-  const { type, user2, members, chatName, department, description, meetName, color, tags } = req.body;
+  const { type, user2, members, name: chatName, department, description, meetName, color, tags } = req.body;
 
   try {
     // if (type === 'direct') {
@@ -35,10 +37,19 @@ router.post('/create', authMiddleware, async (req, res) => {
 
     if (type === 'group') {
       // Ensure members exist in the system
-      const usersExist = await User.find({ '_id': { $in: members.map(m => m.user) } });
+      const userIds = members.map((m) => new mongoose.Types.ObjectId(m));
+      const usersExist = await User.find({ _id: { $in: userIds } });
+
       if (usersExist.length !== members.length) {
-        return res.status(400).json({ message: 'One or more members do not exist' });
+        return res
+          .status(400)
+          .json({ message: 'One or more members do not exist' });
       }
+
+      let formattedMembers = members.map((m) => ({user: new mongoose.Types.ObjectId(m), access: GroupAccess.USER}))
+
+      
+      formattedMembers.push({user: new mongoose.Types.ObjectId(req.user.id), access: GroupAccess.OWNER})
 
       // Create the GroupChat
       const groupChat = new GroupChat({
@@ -49,7 +60,7 @@ router.post('/create', authMiddleware, async (req, res) => {
         meetName,
         color,
         tags,
-        members,
+        members: formattedMembers,
         createTime: new Date(),
         archiveTime: null,  // Can be updated later
       });
