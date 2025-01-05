@@ -5,6 +5,7 @@ const User = require('../models/User');
 const authMiddleware = require('../middleware');
 const mongoose = require('mongoose');
 const GroupAccess = require('../group-access');
+const { sendResponse } = require('../utils/responseHandler');
 const router = express.Router();
 
 // Create a new chat (direct or group)
@@ -133,7 +134,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
   }
 });
 
-router.get('/chat-exists/:user2', authMiddleware, async (req, res) => {
+router.get('/direct-chat-exists/:user2', authMiddleware, async (req, res) => {
   const userId = req.user.id; // Extract userId from the token via authMiddleware
   const {user2} = req.params
   try {
@@ -153,9 +154,29 @@ router.get('/chat-exists/:user2', authMiddleware, async (req, res) => {
       });
       
       await directChat.save();      
-      return res.status(200).json({ directChatExists: directChat });
+      return res.status(200).json({ chat: directChat });
     }
-    return res.status(200).json({ directChatExists });
+    return res.status(200).json({ chat: directChatExists });
+  } catch (error) {
+    console.error('Error checking chat existence:', error);
+    return res.status(500).json({ message: 'Error checking chat existence' });
+  }
+});
+
+router.get('/group-chat-exists/:chatId', authMiddleware, async (req, res) => {
+  const userId = req.user.id; // Extract userId from the token via authMiddleware
+  const {chatId} = req.params
+  try {
+    // Check if there are any direct chats where the user is either user1 or user2
+    const groupChat = await GroupChat.findOne({
+      _id: chatId,
+      'members.user': userId, // Check if userId exists in members array
+    });
+    
+    if(!groupChat){
+      return sendResponse(res, { status: 404, success: false, message: "You are not a part of this group", data: null })
+    }
+    return sendResponse(res, { status: 200, success: true, message: "Group found.", data: groupChat })
   } catch (error) {
     console.error('Error checking chat existence:', error);
     return res.status(500).json({ message: 'Error checking chat existence' });
