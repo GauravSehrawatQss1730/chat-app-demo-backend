@@ -17,6 +17,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  avatar: {
+    type: String,
+    required: false,
+  },
   // Add other fields if needed (e.g., profile picture, status)
 });
 
