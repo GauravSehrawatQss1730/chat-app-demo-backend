@@ -79,28 +79,54 @@ router.post('/create', authMiddleware, async (req, res) => {
 
 router.get('/allChat', authMiddleware, async (req, res) => {
   try {
-    // Extract the user ID from the token (assuming `req.user.id` contains the user ID after passing authMiddleware)
     const userId = req.user.id;
+    const { type: chatType } = req.query
 
-    // Fetch direct chats where the user is either user1 or user2
-    // const directChats = await DirectChat.find({
-    //   $or: [{ user1: userId }, { user2: userId }]
-    // });
+    if(chatType === 'direct') {
+      const directChats = await DirectChat.find({
+        $or: [{ user1: userId }, { user2: userId }]
+      }).populate([
+        { path: 'user1', select: 'username email _id' },
+        { path: 'user2', select: 'username email _id' },
+      ]);
 
-    const directChats = []
+      if(!directChats) {
+        return sendResponse(res, {status: 200, message: "Not Found", success: false, data: []})
+      }
+      
+      const filteredChats = directChats?.map((chat) => {
+        if (chat.user1 && chat.user2) {
+          const oppositeUser =
+            chat.user1._id.toString() === userId ? chat.user2 : chat.user1;
+          return {
+            _id: chat._id,
+            userId: oppositeUser._id,
+            name: oppositeUser.username,
+            email: oppositeUser.email,
+            createdAt: chat.createdAt,
+            updatedAt: chat.updatedAt,
+          };
+        }
+        return null;
+      }).filter(chat => chat !== null); 
 
-    // Fetch group chats where the user is a member
-    const groupChats = await GroupChat.find({
-      'members.user': userId
-    });
+      return sendResponse(res, {status: 200, message: "Found", success: true, data: filteredChats})
+    }
 
-    // Combine both into a single array
-    const allChats = [...directChats, ...groupChats];
-
-    return res.status(200).json(allChats);
+    if(chatType === 'group') {
+      const groupChats = await GroupChat.find({
+        'members.user': userId
+      });
+      if(!groupChats) {
+        return sendResponse(res, {status: 200, message: "Not Found", success: false, data: []})
+      }
+      return sendResponse(res, {status: 200, message: "Found", success: true, data: groupChats})
+    }
+    
+    return sendResponse(res, {status: 400, message: "Invalid type.", success: false, data: null})
   } catch (error) {
     console.error('Error fetching user chats:', error);
-    return res.status(500).json({ message: 'Error fetching user chats' });
+    return sendResponse(res, {status: 500, message: "Error fetching user chats.", success: false, data: null})
   }
 });
 
@@ -179,7 +205,7 @@ router.get('/group-chat-exists/:chatId', authMiddleware, async (req, res) => {
     return sendResponse(res, { status: 200, success: true, message: "Group found.", data: groupChat })
   } catch (error) {
     console.error('Error checking chat existence:', error);
-    return res.status(500).json({ message: 'Error checking chat existence' });
+    return sendResponse(res, { status: 500, success: false, message: "Internal Server Error.", data: null })
   }
 });
 
