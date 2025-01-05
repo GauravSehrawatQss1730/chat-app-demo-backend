@@ -76,6 +76,33 @@ router.post('/create', authMiddleware, async (req, res) => {
   }
 });
 
+router.get('/allChat', authMiddleware, async (req, res) => {
+  try {
+    // Extract the user ID from the token (assuming `req.user.id` contains the user ID after passing authMiddleware)
+    const userId = req.user.id;
+
+    // Fetch direct chats where the user is either user1 or user2
+    // const directChats = await DirectChat.find({
+    //   $or: [{ user1: userId }, { user2: userId }]
+    // });
+
+    const directChats = []
+
+    // Fetch group chats where the user is a member
+    const groupChats = await GroupChat.find({
+      'members.user': userId
+    });
+
+    // Combine both into a single array
+    const allChats = [...directChats, ...groupChats];
+
+    return res.status(200).json(allChats);
+  } catch (error) {
+    console.error('Error fetching user chats:', error);
+    return res.status(500).json({ message: 'Error fetching user chats' });
+  }
+});
+
 router.get('/:id', authMiddleware, async (req, res) => {
   try {
     const chatId = req.params.id;
@@ -103,31 +130,6 @@ router.get('/:id', authMiddleware, async (req, res) => {
   } catch (error) {
     console.error('Error fetching chat:', error);
     return res.status(500).json({ message: 'Error fetching chat' });
-  }
-});
-
-router.get('/allChat', authMiddleware, async (req, res) => {
-  try {
-    // Extract the user ID from the token (assuming `req.user.id` contains the user ID after passing authMiddleware)
-    const userId = req.user.id;
-
-    // Fetch direct chats where the user is either user1 or user2
-    const directChats = await DirectChat.find({
-      $or: [{ user1: userId }, { user2: userId }]
-    });
-
-    // Fetch group chats where the user is a member
-    const groupChats = await GroupChat.find({
-      'members.user': userId
-    });
-
-    // Combine both into a single array
-    const allChats = [...directChats, ...groupChats];
-
-    return res.status(200).json(allChats);
-  } catch (error) {
-    console.error('Error fetching user chats:', error);
-    return res.status(500).json({ message: 'Error fetching user chats' });
   }
 });
 
