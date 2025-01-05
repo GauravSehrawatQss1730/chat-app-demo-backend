@@ -33,6 +33,7 @@ exports.createMessage = async (req, res) => {
 exports.getMessagesByChat = async (req, res) => {
     try {
       const { chatId } = req.params;
+      console.log(chatId)
   
       const messages = await Message.find({ chat: chatId })
         .populate('sender', 'username email') // Fetch sender details
